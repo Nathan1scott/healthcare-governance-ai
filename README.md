@@ -27,4 +27,4 @@ An AI-powered prior authorization system that predicts medication approval proba
 
 ---
 
-**Created by Nathan Scott**
+**Created by Nathan Aniakwa**
