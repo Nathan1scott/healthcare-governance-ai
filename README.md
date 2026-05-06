@@ -1,3 +1,7 @@
+![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![ML](https://img.shields.io/badge/ML-XGBoost-orange)
+![API](https://img.shields.io/badge/API-FastAPI-red)
 # 🏥 Healthcare Governance AI
 
 An AI-powered prior authorization system that predicts medication approval probability in real-time using XGBoost.
