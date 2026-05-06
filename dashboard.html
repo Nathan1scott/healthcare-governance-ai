@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Healthcare Governance AI - Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .patient-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .patient-card:hover {
+            transform: translateX(5px);
+            background: #e9ecef;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .result {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .approved {
+            color: green;
+            font-weight: bold;
+        }
+        .denied {
+            color: red;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #3498db;
+            color: white;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .api-url {
+            background: #2c3e50;
+            color: #e8f4fd;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏥 Healthcare Governance AI</h1>
+    <p><em>Prior Authorization System powered by XGBoost Machine Learning</em></p>
+    
+    <div class="api-url">
+        🔗 API Running at: http://localhost:8000
+    </div>
+    
+    <div class="nav-buttons">
+        <button onclick="showPatients()">📋 Show Patients</button>
+        <button onclick="checkSingle()">💊 Check Single Medication</button>
+        <button onclick="checkBatch()">📦 Check All Patient Medications</button>
+        <button onclick="generateReport()">📄 Generate PDF Report</button>
+    </div>
+    
+    <div id="content">
+        <h2>Select a Patient</h2>
+        <div id="patient-list">Loading patients...</div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://localhost:8000";
+    
+    // Sample patient IDs from your data
+    const patients = [
+        "9a76060b-3539-2fa6-35e0-73e942e4ee2b",
+        "259ec90e-cb90-a80c-2d4b-b88f71d60394",
+        "f944de02-425b-9182-9909-61675a9c1eba",
+        "4b9f4abf-5c32-8756-8ebd-2763f5b5725b",
+        "25f27b46-c4fd-17ef-7e6d-01226fcf5ffb"
+    ];
+    
+    let selectedPatient = patients[0];
+    
+    async function showPatients() {
+        const content = document.getElementById('content');
+        content.innerHTML = '<h2>Select a Patient</h2><div id="patient-list"></div>';
+        
+        const listDiv = document.getElementById('patient-list');
+        listDiv.innerHTML = '';
+        
+        for (const patientId of patients) {
+            try {
+                const response = await fetch(`${API_URL}/patient/${patientId}`);
+                const patient = await response.json();
+                const div = document.createElement('div');
+                div.className = 'patient-card';
+                div.onclick = () => selectPatient(patientId, patient);
+                div.innerHTML = `
+                    <strong>${patient.FIRST} ${patient.LAST}</strong><br>
+                    ID: ${patientId.substring(0, 16)}...<br>
+                    Age: ${2025 - new Date(patient.BIRTHDATE).getFullYear()} | Gender: ${patient.GENDER} | Race: ${patient.RACE}
+                `;
+                listDiv.appendChild(div);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    }
+    
+    function selectPatient(patientId, patient) {
+        selectedPatient = patientId;
+        document.getElementById('content').innerHTML = `
+            <h2>✅ Selected Patient: ${patient.FIRST} ${patient.LAST}</h2>
+            <p><strong>ID:</strong> ${patientId}</p>
+            <p><strong>Age:</strong> ${2025 - new Date(patient.BIRTHDATE).getFullYear()} | 
+               <strong>Gender:</strong> ${patient.GENDER} | 
+               <strong>Race:</strong> ${patient.RACE}</p>
+            <div class="nav-buttons">
+                <button onclick="checkSingle()">💊 Check Medication</button>
+                <button onclick="checkBatch()">📦 Check All Medications</button>
+                <button onclick="generateReport()">📄 Generate PDF Report</button>
+            </div>
+            <div id="result-area"></div>
+        `;
+    }
+    
+    async function checkSingle() {
+        const medication = prompt("Enter medication name:", "insulin");
+        if (!medication) return;
+        
+        document.getElementById('result-area').innerHTML = '<div class="result">⏳ Checking...</div>';
+        
+        try {
+            const response = await fetch(`${API_URL}/prior_auth/${selectedPatient}/${medication}`);
+            const result = await response.json();
+            
+            document.getElementById('result-area').innerHTML = `
+                <div class="result">
+                    <h3>Prior Authorization Result</h3>
+                    <table>
+                        <tr><th>Medication</th><td>${result.medication}</td></tr>
+                        <tr><th>Approval Probability</th><td>${(result.approval_probability * 100).toFixed(1)}%</td></tr>
+                        <tr><th>Decision</th><td class="${result.approved ? 'approved' : 'denied'}">${result.approved ? '✓ APPROVED' : '✗ NEEDS REVIEW'}</td></tr>
+                        <tr><th>Recommendation</th><td>${result.recommendation}</td></tr>
+                        <tr><th>Patient Conditions</th><td>${result.num_conditions} conditions</td></tr>
+                        <tr><th>Cost Tier</th><td>${result.cost_tier}</td></tr>
+                    </table>
+                </div>
+            `;
+        } catch(e) {
+            document.getElementById('result-area').innerHTML = `<div class="result">❌ Error: ${e.message}</div>`;
+        }
+    }
+    
+    async function checkBatch() {
+        document.getElementById('result-area').innerHTML = '<div class="result">⏳ Loading all medications...</div>';
+        
+        try {
+            const response = await fetch(`${API_URL}/prior_auth_batch/${selectedPatient}`);
+            const result = await response.json();
+            
+            let tableHtml = '<div class="result"><h3>All Medications - Prior Authorization Results</h3><table><tr><th>Medication</th><th>Approval Prob</th><th>Decision</th></tr>';
+            
+            for (const med of result.medications) {
+                tableHtml += `
+                    <tr>
+                        <td>${med.medication.substring(0, 40)}</td>
+                        <td>${(med.approval_probability * 100).toFixed(1)}%</td>
+                        <td class="${med.approved ? 'approved' : 'denied'}">${med.approved ? '✓ Approved' : '⚠ Review'}</td>
+                    </tr>
+                `;
+            }
+            
+            tableHtml += `<tr style="background:#e8f4fd"><td><strong>Summary</strong></td>
+                         <td colspan="2"><strong>${result.auto_approved}/${result.total} medications auto-approved</strong></td></tr>`;
+            tableHtml += '</table></div>';
+            
+            document.getElementById('result-area').innerHTML = tableHtml;
+        } catch(e) {
+            document.getElementById('result-area').innerHTML = `<div class="result">❌ Error: ${e.message}</div>`;
+        }
+    }
+    
+    function generateReport() {
+        window.open(`${API_URL}/generate_report/${selectedPatient}`, '_blank');
+    }
+    
+    // Load patients on page load
+    showPatients();
+</script>
+</body>
+</html>
