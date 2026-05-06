@@ -79,3 +79,15 @@ An AI system that predicts approval probability in **<100 milliseconds** with tr
 ---
 
 ## 🏗️ Project Architecture
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/Nathan1scott/healthcare-governance-ai.git
+cd healthcare-governance-ai
+pip install -r requirements.txt
+
+python main.py
